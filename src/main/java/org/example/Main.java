@@ -1,46 +1,95 @@
 package org.example;
 
 import java.util.Map;
+import java.util.Scanner;
 
 public class Main {
 
+    private static final String STORE_PATH = "data/store.json";
+    private static final DataPersistenceManager manager = new DataPersistenceManager(STORE_PATH);
+    private static final Scanner scanner = new Scanner(System.in);
+
     public static void main(String[] args) {
-        DataPersistenceManager manager = new DataPersistenceManager("data/store.json");
+        System.out.println("=== 데이터 영속성 매니저 ===");
         System.out.println("저장 경로: " + manager.getStorePath());
 
-        // CREATE
-        System.out.println("\n--- CREATE ---");
-        manager.create("username", "yongwoo");
-        manager.create("score", 42);
-        manager.create("active", true);
-        System.out.println("3개 항목 저장 완료");
+        while (true) {
+            printMenu();
+            String choice = scanner.nextLine().trim();
 
-        // READ
-        System.out.println("\n--- READ ---");
-        manager.read("username").ifPresent(v -> System.out.println("username: " + v));
-        manager.read("score").ifPresent(v -> System.out.println("score: " + v));
-        manager.read("notExist").ifPresentOrElse(
-                v -> System.out.println("notExist: " + v),
-                () -> System.out.println("notExist: 없음")
+            switch (choice) {
+                case "1" -> handleCreate();
+                case "2" -> handleRead();
+                case "3" -> handleReadAll();
+                case "4" -> handleUpdate();
+                case "5" -> handleDelete();
+                case "6" -> {
+                    System.out.println("종료합니다.");
+                    return;
+                }
+                default -> System.out.println("[오류] 1~6 중에서 선택하세요.");
+            }
+        }
+    }
+
+    private static void printMenu() {
+        System.out.println("\n1. Create  2. Read  3. Read All  4. Update  5. Delete  6. Exit");
+        System.out.print("> ");
+    }
+
+    private static void handleCreate() {
+        System.out.print("키: ");
+        String key = scanner.nextLine().trim();
+        System.out.print("값: ");
+        String value = scanner.nextLine().trim();
+        try {
+            manager.create(key, value);
+            System.out.println("[완료] '" + key + "' 저장됨");
+        } catch (DataPersistenceException e) {
+            System.out.println("[오류] " + e.getMessage());
+        }
+    }
+
+    private static void handleRead() {
+        System.out.print("키: ");
+        String key = scanner.nextLine().trim();
+        manager.read(key).ifPresentOrElse(
+                value -> System.out.println("[결과] " + key + " = " + value),
+                () -> System.out.println("[결과] '" + key + "' 키가 존재하지 않습니다.")
         );
+    }
 
-        // READ ALL
-        System.out.println("\n--- READ ALL ---");
+    private static void handleReadAll() {
         Map<String, Object> all = manager.readAll();
-        all.forEach((k, v) -> System.out.println("  " + k + " = " + v));
+        if (all.isEmpty()) {
+            System.out.println("[결과] 저장된 데이터가 없습니다.");
+        } else {
+            System.out.println("[결과] 전체 " + all.size() + "건");
+            all.forEach((k, v) -> System.out.println("  " + k + " = " + v));
+        }
+    }
 
-        // UPDATE
-        System.out.println("\n--- UPDATE ---");
-        manager.update("score", 100);
-        manager.read("score").ifPresent(v -> System.out.println("score 업데이트 후: " + v));
+    private static void handleUpdate() {
+        System.out.print("키: ");
+        String key = scanner.nextLine().trim();
+        System.out.print("새 값: ");
+        String value = scanner.nextLine().trim();
+        try {
+            manager.update(key, value);
+            System.out.println("[완료] '" + key + "' 업데이트됨");
+        } catch (DataPersistenceException e) {
+            System.out.println("[오류] " + e.getMessage());
+        }
+    }
 
-        // DELETE
-        System.out.println("\n--- DELETE ---");
-        manager.delete("active");
-        System.out.println("active 삭제 후 존재 여부: " + manager.exists("active"));
-
-        // 재실행해도 데이터가 유지되는지 확인
-        System.out.println("\n--- 최종 상태 (재실행 후에도 유지됨) ---");
-        manager.readAll().forEach((k, v) -> System.out.println("  " + k + " = " + v));
+    private static void handleDelete() {
+        System.out.print("키: ");
+        String key = scanner.nextLine().trim();
+        try {
+            manager.delete(key);
+            System.out.println("[완료] '" + key + "' 삭제됨");
+        } catch (DataPersistenceException e) {
+            System.out.println("[오류] " + e.getMessage());
+        }
     }
 }
